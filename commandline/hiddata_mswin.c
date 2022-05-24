@@ -15,7 +15,7 @@
 #include <string.h>
 #include <errno.h>
 
-#if 0 //ifdef DEBUG
+#if 1 //ifdef DEBUG
 #define DEBUG_PRINT(arg)    printf arg
 #else
 #define DEBUG_PRINT(arg)
@@ -112,7 +112,7 @@ int usbhidEnumDevices(int vendor, int product,
 
     deviceInfo.cbSize = sizeof(deviceInfo);
     for (i=0; ; i++) {
-        if (handle != INVALID_HANDLE_VALUE) {
+        if (handle && handle != INVALID_HANDLE_VALUE) {
             CloseHandle(handle);
             handle = INVALID_HANDLE_VALUE;
         }
@@ -135,19 +135,22 @@ int usbhidEnumDevices(int vendor, int product,
         b = SetupDiGetDeviceInterfaceDetailW(deviceInfoList, &deviceInfo, deviceDetails, size, &size, NULL);
         if ( !b )
             continue;
-        DEBUG_PRINT(("checking HID path \"%s\"\n", deviceDetails->DevicePath));
+        wprintf(L"checking HID path \"%s\"\n", deviceDetails->DevicePath);
 
         handle = CreateFileW(deviceDetails->DevicePath, 
             GENERIC_READ|GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_EXISTING, openFlags, NULL);
-        if (handle == INVALID_HANDLE_VALUE){
+        if (!handle || handle == INVALID_HANDLE_VALUE){
             DEBUG_PRINT(("open USB device failed: gle=%d\n", (int)GetLastError()));
             /* Opening devices owned by OS or other apps will fail ; just ignore these. */
             continue;
         }
         deviceAttributes.Size = sizeof(deviceAttributes);
-        HidD_GetAttributes(handle, &deviceAttributes);
-        DEBUG_PRINT(("device attributes: vid=%d pid=%d ver=%4.4X\n", deviceAttributes.VendorID, deviceAttributes.ProductID, deviceAttributes.VersionNumber));
-        if (deviceAttributes.VendorID != vendor || deviceAttributes.ProductID != product)
+        deviceAttributes.ProductID = 0;
+        deviceAttributes.VendorID = 0;
+        deviceAttributes.VersionNumber = 0;
+        BOOLEAN success = HidD_GetAttributes(handle, &deviceAttributes);
+        DEBUG_PRINT(("device attributes: vid=0x%X pid=0x%X ver=%4.4X\n", deviceAttributes.VendorID, deviceAttributes.ProductID, deviceAttributes.VersionNumber));
+        if (!success || deviceAttributes.VendorID != vendor || deviceAttributes.ProductID != product)
             continue;   /* skip this device */
 
         errorCode = 0;

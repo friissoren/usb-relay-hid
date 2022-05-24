@@ -4,8 +4,10 @@
 #include "targetver.h"
 #include "hiddata.h"
 
-#define USB_CFG_VENDOR_ID       0x16c0 /* 5824 = voti.nl */
-#define USB_CFG_DEVICE_ID       0x05DF /* obdev's shared PID for HIDs */
+//#define USB_CFG_VENDOR_ID       0x16c0 /* 5824 = voti.nl */
+//#define USB_CFG_DEVICE_ID       0x05DF /* obdev's shared PID for HIDs */
+#define USB_CFG_VENDOR_ID       0x1D6B
+#define USB_CFG_DEVICE_ID       0x0104
 
 #ifndef DEBUG_PRINT
 #if 0 //ifdef DEBUG
