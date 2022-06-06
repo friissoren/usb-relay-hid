@@ -149,7 +149,7 @@ int usbhidEnumDevices(int vendor, int product,
         deviceAttributes.VendorID = 0;
         deviceAttributes.VersionNumber = 0;
         BOOLEAN success = HidD_GetAttributes(handle, &deviceAttributes);
-        DEBUG_PRINT(("device attributes: vid=0x%X pid=0x%X ver=%4.4X\n", deviceAttributes.VendorID, deviceAttributes.ProductID, deviceAttributes.VersionNumber));
+        DEBUG_PRINT(("device attributes: vid=0x%X pid=0x%X ver=%4.4X, gle=%d\n", deviceAttributes.VendorID, deviceAttributes.ProductID, deviceAttributes.VersionNumber, (int)GetLastError()));
         if (!success || deviceAttributes.VendorID != vendor || deviceAttributes.ProductID != product)
             continue;   /* skip this device */
 
@@ -193,6 +193,32 @@ int usbhidGetReport(USBDEVHANDLE usbh, int reportNumber, char *buffer, int *len)
     return rval == 0 ? USBHID_ERR_IO_HID : 0;
 }
 
+int usbhidSetOutputReport(USBDEVHANDLE usbh, char* buffer, int len)
+{
+    PHIDP_PREPARSED_DATA PreparsedData = NULL;
+    HIDD_ATTRIBUTES      Attributes;
+    HIDP_CAPS            Capabilities;
+
+    BOOLEAN result = HidD_GetPreparsedData(usbh, &PreparsedData);
+    if (result == FALSE)
+        return -1;
+
+    result = HidD_GetAttributes(usbh, &Attributes);
+    if (result == FALSE)
+        return -1;
+
+    NTSTATUS status = HidP_GetCaps(PreparsedData, &Capabilities);
+    if (status != HIDP_STATUS_SUCCESS)
+        return -1;
+
+    if (len < Capabilities.OutputReportByteLength)
+        return -1;
+
+    BOOLEAN rval;
+    rval = HidD_SetOutputReport(usbh, buffer, len);
+    int err = GetLastError();
+    return rval == 0 ? USBHID_ERR_IO_HID : 0;
+}
 
 int usbhidStrerror_r( int err, char *buf, int len)
 {

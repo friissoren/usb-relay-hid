@@ -10,7 +10,7 @@
 #define USB_CFG_DEVICE_ID       0x0104
 
 #ifndef DEBUG_PRINT
-#if 0 //ifdef DEBUG
+#if 1 //ifdef DEBUG
 #	define DEBUG_PRINT(arg)    printf arg
 #else
 #	define DEBUG_PRINT(arg)

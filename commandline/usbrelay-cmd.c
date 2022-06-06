@@ -18,8 +18,8 @@
 #include <stdlib.h>
 #include "hidusb-tool.h"
 
-#define USB_RELAY_VENDOR_NAME     "www.dcttech.com"
-#define USB_RELAY_NAME_PREF       "USBRelay"  // + number
+#define USB_RELAY_VENDOR_NAME     "manufacturer"
+#define USB_RELAY_NAME_PREF       "HID Interface"
 
 #define USB_RELAY_ID_STR_LEN      5 /* length of "unique serial number" in the devices */
 
@@ -93,21 +93,22 @@ static int enumFunc(USBDEVHANDLE dev, void *context)
         goto next;
     }
 
-    i = (int)strlen(buffer);
+    /*i = (int)strlen(buffer);
     if ( i != (int)strlen(productName) + 1 )
     {
         goto next;
     }
 
-    /* the last char of ProductString is number of relays */
+    // the last char of ProductString is number of relays
     num = (int)(buffer[i - 1]) - (int)'0';
-    buffer[i - 1] = 0;
+    buffer[i - 1] = 0;*/
 
     if ( 0 != strcmp( buffer, productName) )
     {
         goto next;
     }
 
+    num = 1;
     if ( num <= 0 || num > 8 )
     {
         printerr("Unknown relay device? num relays=%d\n", num);
@@ -115,7 +116,7 @@ static int enumFunc(USBDEVHANDLE dev, void *context)
     }
 
      /* Check the unique ID: USB_RELAY_ID_STR_LEN bytes at offset 1 (just after the report id) */
-    err = rel_read_status_raw(dev, buffer);
+    /*err = rel_read_status_raw(dev, buffer);
     if( err < 0 )
     {
         printerr("Error reading report 0: %s\n", usbErrorMessage(err));
@@ -136,7 +137,7 @@ static int enumFunc(USBDEVHANDLE dev, void *context)
     {
         printerr("Bad device ID!\n");
         goto next;
-    }
+    }*/
 
     DEBUG_PRINT(("Device %s%d found: ID=[%5s]\n", productName, num, &buffer[1]));
     g_max_relay_num = num;
@@ -256,6 +257,23 @@ static int rel_onoff( USBDEVHANDLE dev, int is_on, char const *numstr )
     return 0;
 }
 
+static int output(USBDEVHANDLE dev, int is_on, int id)
+{
+    unsigned char buffer[9];
+    int err = -1;
+
+    memset(buffer, 0, sizeof(buffer));
+    buffer[0] = 3; /* report # */
+    for (int i = 1; i < 9; i++)
+        buffer[i] = i;
+
+    if ((err = usbhidSetOutputReport(dev, buffer, 9)) != 0) {
+        printerr("Error writing data: %s\n", usbErrorMessage(err));
+        return 1;
+    }
+
+    return 0;
+}
 
 static int show_status(USBDEVHANDLE dev)
 {
@@ -364,6 +382,8 @@ int main(int argc, char **argv)
         err = rel_onoff(dev, 1, arg2);
     }else if( strcasecmp(arg1, "off" ) == 0) {
         err = rel_onoff(dev, 0, arg2);
+    }else if( strcasecmp(arg1, "out" ) == 0) {
+        err = output(dev, 1, arg2);
     }else {
         usage(argv[0]);
         err = 2;
