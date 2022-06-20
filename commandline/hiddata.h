@@ -90,6 +90,7 @@ int usbhidSetReport(USBDEVHANDLE usbh, char *buffer, int len);
  */
 int usbhidGetReport(USBDEVHANDLE usbh, int reportID, char *buffer, int *len);
 
+int usbhidSetOutputReport(USBDEVHANDLE usbh, char* buffer, int len);
 
 /**
  * Return description of error code

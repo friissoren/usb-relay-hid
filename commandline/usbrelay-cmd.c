@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include "hidusb-tool.h"
 
 #define USB_RELAY_VENDOR_NAME     "manufacturer"
@@ -79,7 +80,7 @@ static int enumFunc(USBDEVHANDLE dev, void *context)
     int err;
     char buffer[128*sizeof(short)]; // max USB string is 128 UTF-16 chars
     int num = 0;
-    int i;
+    //int i;
 
     err = usbhidGetVendorString(dev, buffer, sizeof(buffer));
     if ( err || 0 != strcmp( buffer, vendorName) )
@@ -257,15 +258,17 @@ static int rel_onoff( USBDEVHANDLE dev, int is_on, char const *numstr )
     return 0;
 }
 
-static int output(USBDEVHANDLE dev, int is_on, int id)
+static int output(USBDEVHANDLE dev, bool mtp_on, bool radar_on, bool uwbradar_on, bool bodytemp_on)
 {
     unsigned char buffer[9];
     int err = -1;
 
     memset(buffer, 0, sizeof(buffer));
-    buffer[0] = 3; /* report # */
-    for (int i = 1; i < 9; i++)
-        buffer[i] = i;
+    buffer[0] = 3; /* report number */
+    buffer[1] = mtp_on;
+    buffer[2] = radar_on;
+    buffer[3] = uwbradar_on;
+    buffer[4] = bodytemp_on;
 
     if ((err = usbhidSetOutputReport(dev, buffer, 9)) != 0) {
         printerr("Error writing data: %s\n", usbErrorMessage(err));
@@ -347,6 +350,9 @@ int main(int argc, char **argv)
     int         err;
     char const *arg1 = (argc >= 2) ? argv[1] : NULL;
     char const *arg2 = (argc >= 3) ? argv[2] : NULL;
+    char const* arg3 = (argc >= 4) ? argv[3] : NULL;
+    char const* arg4 = (argc >= 5) ? argv[4] : NULL;
+    char const* arg5 = (argc >= 6) ? argv[5] : NULL;
 
     if ( !arg1 ) {
         usage(argv[0]);
@@ -358,7 +364,7 @@ int main(int argc, char **argv)
         return err;
     }
 
-    if ( strncasecmp(arg1, "id=", 3) == 0 ) {
+    if ( strncasecmp(arg1, "id=", 3) == 0 && arg2 ) {
         /* Set the ID for following commands. else use 1st found device.*/
         if (strlen(&arg1[3]) != USB_RELAY_ID_STR_LEN) {
             printerr("ERROR: ID must be %d characters (%s)\n", USB_RELAY_ID_STR_LEN, arg1);
@@ -376,6 +382,29 @@ int main(int argc, char **argv)
     if ( !dev )
         return 1;
 
+    bool mtp_on = false;
+    bool radar_on = false;
+    bool uwbradar_on = false;
+    bool bodytemp_on = false;
+
+    if (arg2 && strncasecmp(arg2, "mtp", 3) == 0)
+        mtp_on = true;
+
+    if ((arg2 && strncasecmp(arg2, "radar", 5) == 0) ||
+        (arg3 && strncasecmp(arg3, "radar", 5) == 0))
+        radar_on = true;
+
+    if ((arg2 && strncasecmp(arg2, "uwbradar", 8) == 0) ||
+        (arg3 && strncasecmp(arg3, "uwbradar", 8) == 0) ||
+        (arg4 && strncasecmp(arg4, "uwbradar", 8) == 0))
+        uwbradar_on = true;
+
+    if ((arg2 && strncasecmp(arg2, "bodytemp", 8) == 0) ||
+        (arg3 && strncasecmp(arg3, "bodytemp", 8) == 0) ||
+        (arg4 && strncasecmp(arg4, "bodytemp", 8) == 0) ||
+        (arg5 && strncasecmp(arg5, "bodytemp", 8) == 0))
+        bodytemp_on = true;
+
     if ( strncasecmp(arg1, "stat", 4) == 0 ) { // stat|state|status
         err = show_status(dev);
     }else if( strcasecmp(arg1, "on" ) == 0) {
@@ -383,7 +412,7 @@ int main(int argc, char **argv)
     }else if( strcasecmp(arg1, "off" ) == 0) {
         err = rel_onoff(dev, 0, arg2);
     }else if( strcasecmp(arg1, "out" ) == 0) {
-        err = output(dev, 1, arg2);
+        err = output(dev, mtp_on, radar_on, uwbradar_on, bodytemp_on);
     }else {
         usage(argv[0]);
         err = 2;
