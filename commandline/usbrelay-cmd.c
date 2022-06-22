@@ -19,7 +19,7 @@
 #include <stdbool.h>
 #include "hidusb-tool.h"
 
-#define USB_RELAY_VENDOR_NAME     "manufacturer"
+#define USB_RELAY_VENDOR_NAME     "Intel"
 #define USB_RELAY_NAME_PREF       "HID Interface"
 
 #define USB_RELAY_ID_STR_LEN      5 /* length of "unique serial number" in the devices */
