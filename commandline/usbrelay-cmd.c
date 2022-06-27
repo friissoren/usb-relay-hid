@@ -258,7 +258,7 @@ static int rel_onoff( USBDEVHANDLE dev, int is_on, char const *numstr )
     return 0;
 }
 
-static int output(USBDEVHANDLE dev, bool mtp_on, bool radar_on, bool uwbradar_on, bool bodytemp_on)
+static int output(USBDEVHANDLE dev, bool flash_mode, bool mtp_on, bool radar_on, bool uwbradar_on, bool bodytemp_on)
 {
     unsigned char buffer[9];
     int err = -1;
@@ -269,6 +269,7 @@ static int output(USBDEVHANDLE dev, bool mtp_on, bool radar_on, bool uwbradar_on
     buffer[2] = radar_on;
     buffer[3] = uwbradar_on;
     buffer[4] = bodytemp_on;
+    buffer[5] = flash_mode;
 
     if ((err = usbhidSetOutputReport(dev, buffer, 9)) != 0) {
         printerr("Error writing data: %s\n", usbErrorMessage(err));
@@ -386,6 +387,10 @@ int main(int argc, char **argv)
     bool radar_on = false;
     bool uwbradar_on = false;
     bool bodytemp_on = false;
+    bool flash_mode = false;
+
+    if (arg2 && strncasecmp(arg2, "flash", 3) == 0)
+        flash_mode = true;
 
     if (arg2 && strncasecmp(arg2, "mtp", 3) == 0)
         mtp_on = true;
@@ -412,7 +417,7 @@ int main(int argc, char **argv)
     }else if( strcasecmp(arg1, "off" ) == 0) {
         err = rel_onoff(dev, 0, arg2);
     }else if( strcasecmp(arg1, "out" ) == 0) {
-        err = output(dev, mtp_on, radar_on, uwbradar_on, bodytemp_on);
+        err = output(dev, flash_mode, mtp_on, radar_on, uwbradar_on, bodytemp_on);
     }else {
         usage(argv[0]);
         err = 2;
