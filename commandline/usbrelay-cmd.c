@@ -258,18 +258,19 @@ static int rel_onoff( USBDEVHANDLE dev, int is_on, char const *numstr )
     return 0;
 }
 
-static int output(USBDEVHANDLE dev, bool flash_mode, bool mtp_on, bool radar_on, bool uwbradar_on, bool bodytemp_on)
+static int output(USBDEVHANDLE dev, bool flash_mode, bool mtp_on, bool radar_on, bool uwbradar_on, bool bodytemp_on, int environment)
 {
     unsigned char buffer[9];
     int err = -1;
 
     memset(buffer, 0, sizeof(buffer));
-    buffer[0] = 3; /* report number */
+    buffer[0] = 4; /* report number */
     buffer[1] = mtp_on;
     buffer[2] = radar_on;
     buffer[3] = uwbradar_on;
     buffer[4] = bodytemp_on;
     buffer[5] = flash_mode;
+    buffer[6] = environment;
 
     if ((err = usbhidSetOutputReport(dev, buffer, 9)) != 0) {
         printerr("Error writing data: %s\n", usbErrorMessage(err));
@@ -354,6 +355,8 @@ int main(int argc, char **argv)
     char const* arg3 = (argc >= 4) ? argv[3] : NULL;
     char const* arg4 = (argc >= 5) ? argv[4] : NULL;
     char const* arg5 = (argc >= 6) ? argv[5] : NULL;
+    char const* arg6 = (argc >= 7) ? argv[6] : NULL;
+    char const* arg7 = (argc >= 8) ? argv[7] : NULL;
 
     if ( !arg1 ) {
         usage(argv[0]);
@@ -388,6 +391,7 @@ int main(int argc, char **argv)
     bool uwbradar_on = false;
     bool bodytemp_on = false;
     bool flash_mode = false;
+    int environment = 0;
 
     if (arg2 && strncasecmp(arg2, "flash", 3) == 0)
         flash_mode = true;
@@ -410,6 +414,15 @@ int main(int argc, char **argv)
         (arg5 && strncasecmp(arg5, "bodytemp", 8) == 0))
         bodytemp_on = true;
 
+    if ((arg2 && strncasecmp(arg2, "environment", 11) == 0) ||
+        (arg3 && strncasecmp(arg3, "environment", 11) == 0) ||
+        (arg4 && strncasecmp(arg4, "environment", 11) == 0) ||
+        (arg5 && strncasecmp(arg5, "environment", 11) == 0) ||
+        (arg6 && strncasecmp(arg6, "environment", 11) == 0)) {
+        environment = atoi(argv[argc - 1]);
+        environment = environment < 0 ? 0 : environment;
+    }
+
     if ( strncasecmp(arg1, "stat", 4) == 0 ) { // stat|state|status
         err = show_status(dev);
     }else if( strcasecmp(arg1, "on" ) == 0) {
@@ -417,7 +430,7 @@ int main(int argc, char **argv)
     }else if( strcasecmp(arg1, "off" ) == 0) {
         err = rel_onoff(dev, 0, arg2);
     }else if( strcasecmp(arg1, "out" ) == 0) {
-        err = output(dev, flash_mode, mtp_on, radar_on, uwbradar_on, bodytemp_on);
+        err = output(dev, flash_mode, mtp_on, radar_on, uwbradar_on, bodytemp_on, environment);
     }else {
         usage(argv[0]);
         err = 2;
